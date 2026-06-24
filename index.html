@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ควิซเกมเก็บคะแนน</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        input[type="text"] {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .choice-btn {
+            background-color: #008CBA;
+            margin: 5px 0;
+        }
+        .choice-btn:hover {
+            background-color: #007bb5;
+        }
+        #quiz-screen, #result-screen {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="start-screen">
+            <h2>ยินดีต้อนรับสู่ควิซ!</h2>
+            <input type="text" id="player-name-input" placeholder="กรอกชื่อของคุณเพื่อเริ่มเกม">
+            <button onclick="startQuiz()">เริ่มเล่น</button>
+        </div>
+
+        <div id="quiz-screen">
+            <h3 id="question-text">คำถามจะแสดงที่นี่</h3>
+            <div id="choices-container"></div>
+        </div>
+
+        <div id="result-screen">
+            <h2>สรุปผลคะแนน</h2>
+            <p id="result-text"></p>
+            <p style="color: green; font-size: 14px;">(บันทึกข้อมูลลงระบบเรียบร้อยแล้ว!)</p>
+            <button onclick="location.reload()">เล่นอีกครั้ง</button>
+        </div>
+    </div>
+
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="if(submitted) { showResult(); }"></iframe>
+    <form action="https://docs.google.com/forms/u/0/d/1sI0anTS6mcObzsFWP1NHJNi5Rtl7g33We8vfHlH4lN0/formResponse" method="POST" target="hidden_iframe" id="google-form" style="display:none;">
+        <input type="text" name="entry.111111111" id="form-name"> 
+        <input type="text" name="entry.222222222" id="form-score">
+    </form>
+
+    <script>
+        // ชุดข้อมูลคำถาม (สามารถเพิ่มหรือแก้ไขได้)
+        const questions = [
+            { question: "สีของท้องฟ้าในวันฟ้าโปร่งคือสีอะไร?", choices: ["สีแดง", "สีฟ้า", "สีเขียว", "สีเหลือง"], answer: 1 },
+            { question: "สัตว์ชนิดใดร้อง 'เหมียว'?", choices: ["สุนัข", "แมว", "นก", "ปลา"], answer: 1 },
+            { question: "10 + 15 เท่ากับเท่าไร?", choices: ["20", "25", "30", "35"], answer: 1 }
+        ];
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let playerName = "";
+        let submitted = false;
+
+        function startQuiz() {
+            const nameInput = document.getElementById("player-name-input").value;
+            if (nameInput.trim() === "") {
+                alert("กรุณากรอกชื่อก่อนเริ่มเกมครับ!");
+                return;
+            }
+            playerName = nameInput;
+            document.getElementById("start-screen").style.display = "none";
+            document.getElementById("quiz-screen").style.display = "block";
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                submitData(); // ถ้าคำถามหมดแล้ว ให้ส่งข้อมูล
+                return;
+            }
+
+            const q = questions[currentQuestionIndex];
+            document.getElementById("question-text").innerText = `ข้อ ${currentQuestionIndex + 1}: ` + q.question;
+            
+            const choicesContainer = document.getElementById("choices-container");
+            choicesContainer.innerHTML = ""; // เคลียร์ปุ่มเก่าออก
+
+            q.choices.forEach((choice, index) => {
+                const btn = document.createElement("button");
+                btn.className = "choice-btn";
+                btn.innerText = choice;
+                btn.onclick = () => checkAnswer(index);
+                choicesContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex) {
+            const correctIndex = questions[currentQuestionIndex].answer;
+            if (selectedIndex === correctIndex) {
+                score++;
+            }
+            currentQuestionIndex++;
+            loadQuestion();
+        }
+
+        function submitData() {
+            // ซ่อนหน้าจอระหว่างส่งข้อมูล
+            document.getElementById("quiz-screen").style.display = "none";
+            
+            // นำข้อมูลไปใส่ในฟอร์มที่ซ่อนไว้
+            document.getElementById("form-name").value = playerName;
+            document.getElementById("form-score").value = score + " / " + questions.length;
+
+            // สั่งให้ฟอร์มทำงาน (ส่งข้อมูล)
+            submitted = true;
+            document.getElementById("google-form").submit();
+            
+            // หมายเหตุ: เมื่อฟอร์มส่งเสร็จ iframe จะโหลด และ trigger ฟังชันก์ onload ที่จะไปเรียก showResult()
+        }
+
+        function showResult() {
+            document.getElementById("result-screen").style.display = "block";
+            document.getElementById("result-text").innerText = `คุณ ${playerName} ทำคะแนนได้: ${score} จาก ${questions.length} คะแนน`;
+        }
+    </script>
+</body>
+</html>
